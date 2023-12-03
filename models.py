@@ -34,7 +34,6 @@ class Subscription(Base):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     channel_id = db.Column(db.Integer, db.ForeignKey('channels.id'))
     duration = db.Column(db.Integer)
-    subscription_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     user = relationship('User', back_populates='subscriptions')
     channel = relationship('Channel', back_populates='subscriptions')

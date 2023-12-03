@@ -1,14 +1,20 @@
 import logging
+import asyncio
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import config
-import asyncio
 from aiogram.filters.command import Command
+
+import config
 import keyboards
+
 from database import Base, engine, session
 from models import User, Subscription, Channel
+
 from smart_contracts.MasterContract.base import MasterContract
+from smart_contracts.InstanceContract.base import InstanceContract
+from smart_contracts.EscrowContract.base import EscrowContract
 
 
 Base.metadata.create_all(bind=engine)
@@ -142,7 +148,10 @@ async def callback_back_approve(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data.startswith('infoapprove'))
 async def callback_info(callback_query: types.CallbackQuery):
     channel_id = int(callback_query.data.split('_')[1])
-    await show_channel_to_approve_info(channel_id=channel_id, chat_id=callback_query.message.chat.id)
+    await show_channel_to_approve_info(
+        channel_id=channel_id,
+        chat_id=callback_query.message.chat.id,
+    )
 
 
 @dp.callback_query(lambda c: c.data.startswith('prevapprove'))
@@ -276,7 +285,7 @@ async def show_channel_info(chat_id, channel_id: int):
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(
         text='Subscribe',
-        url=f'{config.PAYMENT_SERVER}/channel/{channel_id}'
+        callback_data=f'subscribe_{channel_id}',
     ))
     keyboard.row(InlineKeyboardButton(
         text='Back to list',
@@ -318,9 +327,41 @@ async def callback_next(callback_query: types.CallbackQuery):
 
 
 @dp.callback_query(lambda c: c.data.startswith('info'))
-async def callback_subscribe(callback_query: types.CallbackQuery):
+async def callback_info(callback_query: types.CallbackQuery):
     channel_id = int(callback_query.data.split('_')[1])
     await show_channel_info(callback_query.message.chat.id, channel_id=channel_id)
+    await bot.answer_callback_query(callback_query.id)
+
+
+@dp.callback_query(lambda c: c.data.startswith('subscribe'))
+async def callback_subscribe(callback_query: types.CallbackQuery):
+
+    channel_id = callback_query.data.split('_')[1]
+    telegram_user_id = callback_query.from_user.id
+
+    current_user = session.query(User).filter_by(telegram_id=telegram_user_id).first()
+    user_id = current_user.id
+
+    already_subscribed = session.query(Subscription).filter_by(
+        user_id=user_id,
+        channel_id=channel_id,
+    ).first()
+
+    if already_subscribed:
+        await bot.send_message(chat_id=callback_query.from_user.id, text='Already subscribed!')
+        await bot.answer_callback_query(callback_query.id)
+        return
+
+    new_subscription = Subscription(
+        user_id=user_id,
+        channel_id=channel_id,
+        duration=30,
+    )
+
+    session.add(new_subscription)
+    session.commit()
+
+    await bot.send_message(chat_id=callback_query.from_user.id, text='Successfully subscribed!')
     await bot.answer_callback_query(callback_query.id)
 
 
