@@ -106,7 +106,7 @@ async def show_channels_to_approve_page(chat_id, page=0):
 
     for channel in current_channels:
         button_text = f"{channel.author} - {channel.url}"
-        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'info_{channel.id}'))
+        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'infoapprove_{channel.id}'))
 
     if page > 0:
         keyboard.row(InlineKeyboardButton(text="<<<", callback_data=f"prevapprove_{page}"))
@@ -139,7 +139,7 @@ async def callback_back_approve(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
 
 
-@dp.callback_query(lambda c: c.data.startswith('info'))
+@dp.callback_query(lambda c: c.data.startswith('infoapprove'))
 async def callback_info(callback_query: types.CallbackQuery):
     channel_id = int(callback_query.data.split('_')[1])
     await show_channel_to_approve_info(channel_id=channel_id, chat_id=callback_query.message.chat.id)
@@ -252,7 +252,7 @@ async def show_channels_page(chat_id, page=0):
     all_channels = session.query(Channel).filter(Channel.is_approved == 1).all()
 
     if not all_channels:
-        await bot.send_message(chat_id, "No channels to approve!")
+        await bot.send_message(chat_id, "No channels to subscribe!")
         return
 
     current_channels = all_channels[start_index:end_index]
@@ -261,7 +261,7 @@ async def show_channels_page(chat_id, page=0):
 
     for channel in current_channels:
         button_text = f"{channel.author} - {channel.url}"
-        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'subscribe_{channel.id}'))
+        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'info_{channel.id}'))
 
     if start_index > 0:
         keyboard.row(InlineKeyboardButton(text="<<<", callback_data=f"prev_{page}"))
@@ -317,7 +317,7 @@ async def callback_next(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
 
 
-@dp.callback_query(lambda c: c.data.startswith('subscribe'))
+@dp.callback_query(lambda c: c.data.startswith('info'))
 async def callback_subscribe(callback_query: types.CallbackQuery):
     channel_id = int(callback_query.data.split('_')[1])
     await show_channel_info(callback_query.message.chat.id, channel_id=channel_id)
