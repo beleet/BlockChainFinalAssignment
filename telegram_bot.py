@@ -199,6 +199,16 @@ async def add_channel(message: types.Message):
 
     args = message.text.split(' ')
 
+    current_user = session.query(User).filter_by(telegram_id=message.chat.id).first()
+
+    if current_user.business_address is None:
+        await bot.send_message(
+            text='Please, set your business address, by /set_address command',
+            chat_id=message.chat.id,
+        )
+
+        return
+
     try:
         channel_url = str(args[1])
         channel_author = str(message.from_user.id)
