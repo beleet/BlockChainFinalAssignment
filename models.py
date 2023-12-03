@@ -20,18 +20,17 @@ class Channel(Base):
     __tablename__ = 'channels'
 
     id = db.Column(db.Integer, primary_key=True)
-    author = db.Column(db.Integer)
+    url = db.Column(db.String)
+    author = db.Column(db.String)
     subscription_cost = db.Column(db.Float)
 
     is_approved = db.Column(db.Boolean, default=True)
-    number_of_subscribers = db.Column(db.Integer)
-    creation_timestamp = db.Column(db.DateTime(timezone=True))
 
     subscriptions = relationship('Subscription', back_populates='channel')
 
 
-class Transactions(Base):
-    __tablename__ = 'transactions'
+class Subscription(Base):
+    __tablename__ = 'subscriptions'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))

@@ -8,7 +8,7 @@ from aiogram.filters.command import Command
 import database
 import keyboards
 from database import Base, engine, session
-from models import User, Transactions, Channel
+from models import User, Subscription, Channel
 
 
 Base.metadata.create_all(bind=engine)
@@ -31,7 +31,7 @@ items_per_page = 5
 
 # -------------------------SERVICE COMMANDS-----------------------------------
 @dp.message(Command('help'))
-async def help(message: types.Message):
+async def help_message(message: types.Message):
     await message.answer(
         '/start - start\n'
         '/help - help\n'
@@ -67,17 +67,24 @@ async def show_channels_to_approve_page(chat_id, page=0):
 
     start_index = page * items_per_page
     end_index = start_index + items_per_page
-    current_channels = database.channels_to_check[start_index:end_index]
+
+    all_channels_to_approve = session.query(Channel).filter(Channel.is_approved == 0).all()
+
+    if not all_channels_to_approve:
+        await bot.send_message(chat_id, "No channels to approve!")
+        return
+
+    current_channels = all_channels_to_approve[start_index:end_index]
 
     keyboard = InlineKeyboardBuilder()
 
     for channel in current_channels:
-        button_text = f"{channel['name']} - {channel['link']}"
-        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'approve_{channel["id"]}'))
+        button_text = f"{channel.author} - {channel.url}"
+        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'info_{channel.id}'))
 
     if page > 0:
         keyboard.row(InlineKeyboardButton(text="<<<", callback_data=f"prevapprove_{page}"))
-    if end_index < len(database.channels_to_check):
+    if end_index < len(all_channels_to_approve):
         keyboard.row(InlineKeyboardButton(text=">>>", callback_data=f"nextapprove_{page}"))
 
     await bot.send_message(chat_id, "Channels to approve list:", reply_markup=keyboard.as_markup())
@@ -88,10 +95,21 @@ async def show_channel_to_approve_info(chat_id, channel_id: int):
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text='Approve', callback_data=f'approve_{channel_id}'))
 
+    channel = session.query(Channel).filter(Channel.id == channel_id).first()
+
     await bot.send_message(
         chat_id,
-        text=f'{database.channels_to_check[channel_id]}'
+        text=f'Author: {channel.author}\n'
+             f'URL: {channel.url}\n'
+             f'Subscription cost: {channel.subscription_cost}',
+        reply_markup=keyboard.as_markup()
     )
+
+
+@dp.callback_query(lambda c: c.data.startswith('info'))
+async def callback_info(callback_query: types.CallbackQuery):
+    channel_id = int(callback_query.data.split('_')[1])
+    await show_channel_to_approve_info(channel_id=channel_id, chat_id=callback_query.message.chat.id)
 
 
 @dp.callback_query(lambda c: c.data.startswith('prevapprove'))
@@ -112,12 +130,8 @@ async def callback_next(callback_query: types.CallbackQuery):
 async def callback_subscribe(callback_query: types.CallbackQuery):
 
     channel_id = int(callback_query.data.split('_')[1])
-
-    channel = database.channels_to_check[channel_id]
-    database.channels_to_check.remove(channel)
-
-    channel['id'] = len(database.channels)
-    database.channels.append(channel)
+    session.query(Channel).filter_by(id=channel_id).update({"is_approved": 1})
+    session.commit()
 
     await show_channels_to_approve_page(callback_query.message.chat.id)
     await bot.answer_callback_query(callback_query.id)

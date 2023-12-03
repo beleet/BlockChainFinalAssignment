@@ -23,6 +23,7 @@ author_main_keyboard = ReplyKeyboardMarkup(
         # # Money
         # [KeyboardButton(text='/check_balance')],
         # [KeyboardButton(text='/withdraw')],
+        [KeyboardButton(text='/change_role')],
     ],
     resize_keyboard=True,
 )
@@ -35,6 +36,7 @@ subscriber_main_keyboard = ReplyKeyboardMarkup(
         # [KeyboardButton(text='/unsubscribe')],
         #
         # [KeyboardButton(text='/deposit')],
+        [KeyboardButton(text='/change_role')],
     ],
     resize_keyboard=True,
 )
@@ -42,6 +44,7 @@ subscriber_main_keyboard = ReplyKeyboardMarkup(
 admin_main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text='/approve_channels')],
+        [KeyboardButton(text='/change_role')],
     ],
     resize_keyboard=True,
 )
