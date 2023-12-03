@@ -7,7 +7,19 @@ import asyncio
 from aiogram.filters.command import Command
 import database
 import keyboards
+from database import Base, engine, session
+from models import User, Transactions, Channel
 
+
+Base.metadata.create_all(bind=engine)
+
+
+from smart_contracts.MasterContract.base import MasterContract
+
+master_contract = MasterContract(
+    provider_url='http://127.0.0.1:7545',
+    contract_address='0xc03efC126DB3A9ADFE234a0b8d777628d94A3B53',
+)
 
 logging.basicConfig(level=logging.INFO)
 

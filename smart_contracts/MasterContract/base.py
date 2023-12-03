@@ -1,5 +1,6 @@
 from web3 import Web3, HTTPProvider
 import json
+import os
 
 
 class MasterContract:
@@ -13,7 +14,12 @@ class MasterContract:
         self.web3.eth.default_account = self.web3.eth.accounts[0]
         self.contract = self.web3.eth.contract(
             address=self.web3.to_checksum_address(contract_address),
-            abi=json.load(open('abi.json')),
+            abi=json.load(open(
+                os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)),
+                    'abi.json'
+                )
+            ))
         )
 
     def create_instance_contract(self, business_address: str) -> None:

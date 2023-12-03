@@ -1,20 +1,17 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey
+from database import db, Base
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
-
-Base = declarative_base()
 
 
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
-    role = Column(String)
-    telegram_id = Column(Integer)
-    registration_timestamp = Column(DateTime(timezone=True), server_default=func.now())
-    is_banned_by_admin = Column(Boolean, default=False)
-    balance = Column(Float)
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String)
+    telegram_id = db.Column(db.Integer)
+    registration_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    is_banned_by_admin = db.Column(db.Boolean, default=False)
+    balance = db.Column(db.Float)
 
     subscriptions = relationship('Subscription', back_populates='user')
 
@@ -22,13 +19,13 @@ class User(Base):
 class Channel(Base):
     __tablename__ = 'channels'
 
-    id = Column(Integer, primary_key=True)
-    author = Column(Integer)
-    subscription_cost = Column(Float)
+    id = db.Column(db.Integer, primary_key=True)
+    author = db.Column(db.Integer)
+    subscription_cost = db.Column(db.Float)
 
-    is_approved = Column(Boolean, default=True)
-    number_of_subscribers = Column(Integer)
-    creation_timestamp = Column(DateTime(timezone=True))
+    is_approved = db.Column(db.Boolean, default=True)
+    number_of_subscribers = db.Column(db.Integer)
+    creation_timestamp = db.Column(db.DateTime(timezone=True))
 
     subscriptions = relationship('Subscription', back_populates='channel')
 
@@ -36,14 +33,11 @@ class Channel(Base):
 class Transactions(Base):
     __tablename__ = 'transactions'
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    channel_id = Column(Integer, ForeignKey('channels.id'))
-    duration = Column(Integer)
-    subscription_timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    channel_id = db.Column(db.Integer, db.ForeignKey('channels.id'))
+    duration = db.Column(db.Integer)
+    subscription_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     user = relationship('User', back_populates='subscriptions')
     channel = relationship('Channel', back_populates='subscriptions')
-#
-# заменить сабскрипшнс на транзакции
-# добавить возможноть иметь несколько подписок на канал

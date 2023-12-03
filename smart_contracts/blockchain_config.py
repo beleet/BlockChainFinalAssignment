@@ -2,7 +2,6 @@ import json
 from web3 import Web3, HTTPProvider
 from EscrowContract.config import ESCROW_CONTRACT_ADDRESS
 from InstanceContract.config import INSTANCE_CONTRACT_ADDRESS
-from MasterContract.config import MASTER_CONTRACT_ADDRESS
 
 PROVIDER_URL = 'http://127.0.0.1:7545'
 ADMIN_ADDRESS = ''

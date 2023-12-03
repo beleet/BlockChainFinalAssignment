@@ -1,30 +1,14 @@
-channels = [
-
-    {
-        'id': 0,
-        'name': 'Cryptocurrency and aboba',
-        'description': '',
-        'cost': 5.0,
-        'link': 'https://t.me/channel1',
-    },
-
-    {
-        'id': 1,
-        'name': 'Abobiks cryptocurrency',
-        'description': '',
-        'cost': 5.0,
-        'link': 'https://t.me/channel2',
-    },
-
-    {
-        'id': 2,
-        'name': 'Arbuz',
-        'description': '',
-        'cost': 5.0,
-        'link': 'https://t.me/channel3',
-    },
-
-]
+import sqlalchemy as db
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 
-channels_to_check = []
+engine = db.create_engine('sqlite:///example.db')
+
+session = scoped_session(sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+))
+
+Base = declarative_base()
+Base.query = session.query_property()
