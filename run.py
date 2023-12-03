@@ -145,6 +145,12 @@ async def show_channel_info(chat_id, channel_id: int):
 @dp.message(Command('start'))
 async def start_command(message: types.Message):
     await show_channels_page(message.chat.id)
+    
+    
+@dp.message(Command('rights'))
+async def start_command(message: types.Message):
+    if message.from_user.id in [1273783566]:
+        await bot.send_message(text='машалла брат', chat_id=message.chat.id)
 
 
 @dp.callback_query(lambda c: c.data.startswith('prev'))
