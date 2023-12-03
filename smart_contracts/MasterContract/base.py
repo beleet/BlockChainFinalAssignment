@@ -26,6 +26,7 @@ class MasterContract:
         return self.contract.functions.instanceContracts(business_address).call()
 
 
+# Usage
 # master_contract = MasterContract(
 #     provider_url='http://127.0.0.1:7545',
 #     contract_address='0xc03efC126DB3A9ADFE234a0b8d777628d94A3B53',

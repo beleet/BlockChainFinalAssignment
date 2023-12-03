@@ -1,5 +1,5 @@
 
 greeting = {
-    'en': 'Welcome, please select your role!',
+    'en': '',
     'ru': 'Добро пожаловать, выберите, пожалуйста свою роль!',
 }

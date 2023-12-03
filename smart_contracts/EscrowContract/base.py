@@ -23,9 +23,9 @@ class EscrowContract:
         pass
 
 
-escrow_contract = EscrowContract(
-    provider_url='http://127.0.0.1:7545',
-    contract_address='0x1F6eC9c46201E5E8dC863bAaFeD6d021170544ac',
-)
-
-print(escrow_contract.get_business_owner())
+# escrow_contract = EscrowContract(
+#     provider_url='http://127.0.0.1:7545',
+#     contract_address='0x1F6eC9c46201E5E8dC863bAaFeD6d021170544ac',
+# )
+#
+# print(escrow_contract.get_business_owner())
