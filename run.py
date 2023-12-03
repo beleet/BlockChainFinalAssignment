@@ -5,7 +5,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import config
 import asyncio
 from aiogram.filters.command import Command
-import database
 import keyboards
 from database import Base, engine, session
 from models import User, Subscription, Channel
@@ -94,6 +93,7 @@ async def show_channel_to_approve_info(chat_id, channel_id: int):
 
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text='Approve', callback_data=f'approve_{channel_id}'))
+    keyboard.row(InlineKeyboardButton(text='Back to list', callback_data='back_to_approve_list'))
 
     channel = session.query(Channel).filter(Channel.id == channel_id).first()
 
@@ -104,6 +104,12 @@ async def show_channel_to_approve_info(chat_id, channel_id: int):
              f'Subscription cost: {channel.subscription_cost}',
         reply_markup=keyboard.as_markup()
     )
+
+
+@dp.callback_query(lambda c: c.data.startswith('back_to_approve_list'))
+async def callback_back_approve(callback_query: types.CallbackQuery):
+    await show_channels_to_approve_page(callback_query.message.chat.id)
+    await bot.answer_callback_query(callback_query.id)
 
 
 @dp.callback_query(lambda c: c.data.startswith('info'))
@@ -191,17 +197,23 @@ async def show_channels_page(chat_id, page=0):
 
     start_index = page * items_per_page
     end_index = start_index + items_per_page
-    current_channels = database.channels[start_index:end_index]
+    all_channels = session.query(Channel).filter(Channel.is_approved == 1).all()
+
+    if not all_channels:
+        await bot.send_message(chat_id, "No channels to approve!")
+        return
+
+    current_channels = all_channels[start_index:end_index]
 
     keyboard = InlineKeyboardBuilder()
 
     for channel in current_channels:
-        button_text = f"{channel['name']} - {channel['link']}"
-        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'subscribe_{channel["id"]}'))
+        button_text = f"{channel.author} - {channel.url}"
+        keyboard.row(InlineKeyboardButton(text=button_text, callback_data=f'subscribe_{channel.id}'))
 
-    if page > 0:
+    if start_index > 0:
         keyboard.row(InlineKeyboardButton(text="<<<", callback_data=f"prev_{page}"))
-    if end_index < len(database.channels):
+    if end_index < len(all_channels):
         keyboard.row(InlineKeyboardButton(text=">>>", callback_data=f"next_{page}"))
 
     await bot.send_message(chat_id, "List of channels:", reply_markup=keyboard.as_markup())
@@ -214,10 +226,16 @@ async def show_channel_info(chat_id, channel_id: int):
         text='Subscribe',
         url=f'{config.PAYMENT_SERVER}/channel/{channel_id}'
     ))
+    keyboard.row(InlineKeyboardButton(
+        text='Back to list',
+        callback_data='back_to_channels_list'
+    ))
+
+    channel = session.query(Channel).filter(Channel.id == channel_id).first()
 
     await bot.send_message(
         chat_id,
-        text=f'Info about channel {database.channels[channel_id]["name"]}',
+        text=f'Info about channel {channel.url}',
         reply_markup=keyboard.as_markup(),
     )
 
@@ -225,6 +243,12 @@ async def show_channel_info(chat_id, channel_id: int):
 @dp.message(Command('list_channels'))
 async def start_command(message: types.Message):
     await show_channels_page(message.chat.id)
+
+
+@dp.callback_query(lambda c: c.data.startswith('back_to_channels_list'))
+async def callback_back(callback_query: types.CallbackQuery):
+    await show_channels_page(callback_query.message.chat.id)
+    await bot.answer_callback_query(callback_query.id)
 
 
 @dp.callback_query(lambda c: c.data.startswith('prev'))
