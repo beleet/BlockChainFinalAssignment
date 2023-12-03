@@ -153,24 +153,24 @@ async def add_channel(message: types.Message):
 
     try:
         channel_url = str(args[1])
-        channel_description = str(args[2])
-        channel_price = int(args[3])
+        channel_author = str(message.from_user.id)
+        channel_subscription_cost = int(args[2])
     except (IndexError, ValueError):
         await bot.send_message(
-            text='Type /add_channel <url> <description> <subscription cost>',
+            text='Type /add_channel <url> <subscription cost>',
             chat_id=message.chat.id,
         )
         return
 
-    database.channels_to_check.append(
-        {
-            'id': len(database.channels_to_check),
-            'name': channel_url,
-            'description': channel_description,
-            'cost': channel_price,
-            'link': channel_url,
-        }
+    new_channel = Channel(
+        url=channel_url,
+        author=channel_author,
+        subscription_cost=channel_subscription_cost,
+        is_approved=False,
     )
+
+    session.add(new_channel)
+    session.commit()
 
     await bot.send_message(
         text='Channel successfully added!',
