@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribe to the channel</title>
+</head>
+<body>
+    <h1>{{ channel_info.name }}</h1>
+    <p>{{ channel_info.description }}</p>
+
+    <form method="post" action="/subscribe/{{ channel_index }}">
+        <label for="ethereum_address">Enter your ETH address:</label>
+        <input type="text" id="ethereum_address" name="ethereum_address" required>
+        <button type="submit">Subscribe</button>
+    </form>
+</body>
+</html>
