@@ -7,11 +7,9 @@ class User(Base):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.String)
     telegram_id = db.Column(db.Integer)
-    registration_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    is_banned_by_admin = db.Column(db.Boolean, default=False)
-    balance = db.Column(db.Float)
+    business_address = db.Column(db.String)
+    instance_contract = db.Column(db.String)
 
     subscriptions = relationship('Subscription', back_populates='user')
 

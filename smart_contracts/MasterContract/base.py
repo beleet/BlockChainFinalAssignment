@@ -22,21 +22,20 @@ class MasterContract:
             ))
         )
 
-    def create_instance_contract(self, business_address: str) -> None:
-        try:
-            self.contract.functions.createInstanceContract(business_address).call()
-        except ValueError:
-            print('MasterContract/create_instance_contract: revert Instance contract already exists for this business')
+    def create_instance_contract(self, business_address: str):
+        self.contract.functions.createInstanceContract(business_address).transact()
+
+        return self.get_instance_contract(business_address=business_address)
 
     def get_instance_contract(self, business_address: str) -> None:
         return self.contract.functions.instanceContracts(business_address).call()
 
 
-# Usage
 # master_contract = MasterContract(
 #     provider_url='http://127.0.0.1:7545',
-#     contract_address='0xc03efC126DB3A9ADFE234a0b8d777628d94A3B53',
+#     contract_address='0x8295d6111Ae421656870024a344dFAdc839B9190',
 # )
-#
-#
-# print(master_contract.get_instance_contract('0x249361110BD3a610aFC4b8609ae773cD0d32737D'))
+
+
+# print(master_contract.create_instance_contract('0x567963c579dd24422aCC548e58A7DF838bD1205F'))
+# print(master_contract.get_instance_contract('0x8295d6111Ae421656870024a344dFAdc839B9190'))

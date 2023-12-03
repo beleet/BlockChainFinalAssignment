@@ -8,24 +8,20 @@ from aiogram.filters.command import Command
 import keyboards
 from database import Base, engine, session
 from models import User, Subscription, Channel
+from smart_contracts.MasterContract.base import MasterContract
 
 
 Base.metadata.create_all(bind=engine)
 
-
-from smart_contracts.MasterContract.base import MasterContract
-
 master_contract = MasterContract(
-    provider_url='http://127.0.0.1:7545',
-    contract_address='0xc03efC126DB3A9ADFE234a0b8d777628d94A3B53',
+    provider_url=config.PROVIDER_URL,
+    contract_address=config.MASTER_CONTRACT_ADDRESS,
 )
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
-
-items_per_page = 5
 
 
 # -------------------------SERVICE COMMANDS-----------------------------------
@@ -41,10 +37,41 @@ async def help_message(message: types.Message):
 
 @dp.message(Command('start', 'change_role'))
 async def start(message: types.Message):
+
+    current_user_telegram_id = message.chat.id
+
+    if not session.query(User).filter_by(telegram_id=current_user_telegram_id).first():
+        new_user = User(telegram_id=current_user_telegram_id)
+        session.add(new_user)
+        session.commit()
+
     await message.answer(
         text='Welcome, please select your role!',
         reply_markup=keyboards.select_role_keyboard,
     )
+
+
+@dp.message(Command('set_address'))
+async def start(message: types.Message):
+
+    current_user_telegram_id = message.chat.id
+
+    try:
+        address = str(message.text.split(' ')[1])
+    except (IndexError, ValueError):
+        await bot.send_message(
+            text='Type /set_address <address>',
+            chat_id=message.chat.id,
+        )
+        return
+
+    session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+        "business_address": address,
+    })
+
+    await message.answer(text='Address is successfully set!')
+
+    session.commit()
 
 
 # -------------------------ADMIN COMMANDS-----------------------------------
@@ -64,8 +91,8 @@ async def start_command(message: types.Message):
 
 async def show_channels_to_approve_page(chat_id, page=0):
 
-    start_index = page * items_per_page
-    end_index = start_index + items_per_page
+    start_index = page * 5
+    end_index = start_index + 5
 
     all_channels_to_approve = session.query(Channel).filter(Channel.is_approved == 0).all()
 
@@ -136,6 +163,21 @@ async def callback_next(callback_query: types.CallbackQuery):
 async def callback_subscribe(callback_query: types.CallbackQuery):
 
     channel_id = int(callback_query.data.split('_')[1])
+    current_channel = session.query(Channel).filter_by(id=channel_id).first()
+
+    current_user_telegram_id = current_channel.author
+    current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
+
+    try:
+        new_instance_contract = master_contract.create_instance_contract(current_user.business_address)
+
+        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+            'instance_contract': new_instance_contract,
+        })
+
+    except:
+        pass
+
     session.query(Channel).filter_by(id=channel_id).update({"is_approved": 1})
     session.commit()
 
@@ -195,8 +237,8 @@ async def subscriber_menu(message: types.Message):
 
 async def show_channels_page(chat_id, page=0):
 
-    start_index = page * items_per_page
-    end_index = start_index + items_per_page
+    start_index = page * 5
+    end_index = start_index + 5
     all_channels = session.query(Channel).filter(Channel.is_approved == 1).all()
 
     if not all_channels:
