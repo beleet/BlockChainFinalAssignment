@@ -98,13 +98,13 @@
 			},
 			{
 				"internalType": "address",
-				"name": "token",
+				"name": "tokenAddress",
 				"type": "address"
 			}
 		],
 		"name": "paySubscription",
 		"outputs": [],
-		"stateMutability": "nonpayable",
+		"stateMutability": "payable",
 		"type": "function"
 	},
 	{

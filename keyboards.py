@@ -14,6 +14,7 @@ select_role_keyboard = ReplyKeyboardMarkup(
 author_main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text='/add_channel')],
+        [KeyboardButton(text='/withdraw')],
         # [KeyboardButton(text='/check_balance')],
         # [KeyboardButton(text='/withdraw')],
         [KeyboardButton(text='/change_role')],
@@ -35,6 +36,7 @@ subscriber_main_keyboard = ReplyKeyboardMarkup(
 admin_main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text='/approve_channels')],
+        [KeyboardButton(text='/withdraw_admin')],
         [KeyboardButton(text='/change_role')],
     ],
     resize_keyboard=True,

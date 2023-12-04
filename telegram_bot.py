@@ -12,17 +12,17 @@ import keyboards
 from database import Base, engine, session
 from models import User, Subscription, Channel
 
-from smart_contracts.MasterContract.base import MasterContract
-from smart_contracts.InstanceContract.base import InstanceContract
-from smart_contracts.EscrowContract.base import EscrowContract
+# from smart_contracts.MasterContract.base import MasterContract
+# from smart_contracts.InstanceContract.base import InstanceContract
+# from smart_contracts.EscrowContract.base import EscrowContract
 
 
 Base.metadata.create_all(bind=engine)
 
-master_contract = MasterContract(
-    provider_url=config.PROVIDER_URL,
-    contract_address=config.MASTER_CONTRACT_ADDRESS,
-)
+# master_contract = MasterContract(
+#     provider_url=config.PROVIDER_URL,
+#     contract_address=config.MASTER_CONTRACT_ADDRESS,
+# )
 
 logging.basicConfig(level=logging.INFO)
 
@@ -177,15 +177,15 @@ async def callback_subscribe(callback_query: types.CallbackQuery):
     current_user_telegram_id = current_channel.author
     current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
 
-    try:
-        new_instance_contract = master_contract.create_instance_contract(current_user.business_address)
-
-        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
-            'instance_contract': new_instance_contract,
-        })
-
-    except:
-        pass
+    # try:
+    #     new_instance_contract = master_contract.create_instance_contract(current_user.business_address)
+    #
+    #     session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+    #         'instance_contract': new_instance_contract,
+    #     })
+    #
+    # except:
+    #     pass
 
     session.query(Channel).filter_by(id=channel_id).update({"is_approved": 1})
     session.commit()

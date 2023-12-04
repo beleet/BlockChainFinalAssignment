@@ -11,7 +11,6 @@ class InstanceContract:
             contract_address: str,
     ):
         self.web3 = Web3(HTTPProvider(provider_url))
-        self.web3.eth.default_account = self.web3.eth.accounts[0]
         self.contract = self.web3.eth.contract(
             address=self.web3.to_checksum_address(contract_address),
             abi=json.load(open(
@@ -39,16 +38,16 @@ class InstanceContract:
 
 
 instance_contract = InstanceContract(
-    provider_url='http://127.0.0.1:7545',
-    contract_address='0x5AB26C20296A713ae194F77ab6Ea68c1386214C5',
+    provider_url='https://rpc-mumbai.maticvigil.com/',
+    contract_address='0x5053EE27B56d1f1Df091984EfdeCdaB299def1fc',
 )
 
 # print(instance_contract.get_business_owner())
 # print(instance_contract.get_escrow_contract())
 # print(instance_contract.get_fee_management_contract())
 # print(instance_contract.get_service_fee_percent())
-#
-# instance_contract.pay_subscription(
-#     amount=10,
-#     token=Web3.to_checksum_address('0xdac17f958d2ee523a2206206994597c13d831ec7'),
-# )
+
+instance_contract.pay_subscription(
+    amount=100,
+    token='0x0000000000000000000000000000000000000000',
+)

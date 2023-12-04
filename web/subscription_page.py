@@ -1,34 +1,20 @@
-from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import database
-
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
 
-class SubscriptionForm(BaseModel):
-    ethereum_address: str
+class EthereumAddress(BaseModel):
+    address: str
 
 
-@app.get("/channel/{channel_index}")
-async def read_channel(channel_index: int, request: Request):
-    channel_info = database.channels[channel_index]
-    if not channel_info:
-        return {"error": "Канал не найден"}
+@app.post("/receive_address")
+async def receive_address(ethereum_address: EthereumAddress):
+    address = ethereum_address.address
 
-    return templates.TemplateResponse(
-        "channel_info.html",
-        {"request": request, "channel_info": channel_info, "channel_index": channel_index},
-    )
+    print(f"Received Ethereum address: {address}")
 
-
-@app.post("/subscribe/{channel_index}")
-async def subscribe_to_channel(channel_index: int, form_data: SubscriptionForm):
-    ethereum_address = form_data.ethereum_address
-
-    return {"message": f"Вы подписались на канал {channel_index} с адресом {ethereum_address}"}
+    return {"message": "Address received successfully"}
 
 
 if __name__ == "__main__":

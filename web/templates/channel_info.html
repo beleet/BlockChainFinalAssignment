@@ -1,16 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Subscribe to the channel</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Contract Interaction</title>
 </head>
 <body>
-    <h1>{{ channel_info.name }}</h1>
-    <p>{{ channel_info.description }}</p>
+    <h1>Smart Contract Interaction</h1>
+    <button id="interactButton">Interact with Smart Contract</button>
 
-    <form method="post" action="/subscribe/{{ channel_index }}">
-        <label for="ethereum_address">Enter your ETH address:</label>
-        <input type="text" id="ethereum_address" name="ethereum_address" required>
-        <button type="submit">Subscribe</button>
-    </form>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+    <script>
+        // Wait for the page to be fully loaded before executing the script
+        window.onload = async function () {
+            // Check if MetaMask is installed
+            if (window.ethereum) {
+                // Use MetaMask provider
+                window.web3 = new Web3(ethereum);
+                try {
+                    // Request account access
+                    await ethereum.enable();
+                    // Accounts now exposed
+                } catch (error) {
+                    console.error("User denied account access");
+                }
+            } else if (window.web3) {
+                // Legacy dApp browsers
+                window.web3 = new Web3(web3.currentProvider);
+            } else {
+                console.error("Non-Ethereum browser detected. You should consider trying MetaMask!");
+            }
+
+            // Smart Contract Address
+            const contractAddress = '0xC77E1dE98FD297091e7FCbe21809454D94a8D9c6'; // Replace with your smart contract address
+            const contractABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_feeManagementContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_serviceFeePercent",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "initialOwner",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "business",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "instanceContract",
+				"type": "address"
+			}
+		],
+		"name": "InstanceContractCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "business",
+				"type": "address"
+			}
+		],
+		"name": "createInstanceContract",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feeManagementContract",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "instanceContracts",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "serviceFeePercent",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+
+            const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+            // Get the user's Ethereum address
+            const accounts = await web3.eth.getAccounts();
+            const userAddress = accounts[0];
+
+            // Button click event handler
+            document.getElementById('interactButton').addEventListener('click', async function () {
+                try {
+                    // Call your smart contract method
+                    const result = await contract.methods.createInstanceContract(userAddress).send({
+                        from: userAddress,
+                        gas: 200000,
+                        gasPrice: web3.eth.gasPrice
+                    });
+
+                    console.log('Transaction Hash:', result.transactionHash);
+                } catch (error) {
+                    console.error('Error interacting with smart contract:', error);
+                }
+            });
+        };
+    </script>
 </body>
 </html>
