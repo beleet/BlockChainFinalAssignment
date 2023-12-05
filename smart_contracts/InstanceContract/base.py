@@ -39,7 +39,7 @@ class InstanceContract:
 
 instance_contract = InstanceContract(
     provider_url='https://rpc-mumbai.maticvigil.com/',
-    contract_address='0x5053EE27B56d1f1Df091984EfdeCdaB299def1fc',
+    contract_address='0x403391D6c95393B8c390caDf1e42d49A350c4a5D',
 )
 
 # print(instance_contract.get_business_owner())
@@ -47,7 +47,8 @@ instance_contract = InstanceContract(
 # print(instance_contract.get_fee_management_contract())
 # print(instance_contract.get_service_fee_percent())
 
-instance_contract.pay_subscription(
-    amount=100,
-    token='0x0000000000000000000000000000000000000000',
-)
+
+# event_filter = instance_contract.contract.events.SubscriptionPaymentReceived.get_logs(
+#     fromBlock=instance_contract.web3.eth.block_number - 1000
+# )
+# print(instance_contract.web3.eth.block_number)

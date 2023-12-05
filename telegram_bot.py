@@ -12,22 +12,27 @@ import keyboards
 from database import Base, engine, session
 from models import User, Subscription, Channel
 
-# from smart_contracts.MasterContract.base import MasterContract
-# from smart_contracts.InstanceContract.base import InstanceContract
+from smart_contracts.MasterContract.base import MasterContract
+from smart_contracts.InstanceContract.base import InstanceContract
 # from smart_contracts.EscrowContract.base import EscrowContract
 
 
 Base.metadata.create_all(bind=engine)
 
-# master_contract = MasterContract(
-#     provider_url=config.PROVIDER_URL,
-#     contract_address=config.MASTER_CONTRACT_ADDRESS,
-# )
-
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
+
+master_contract_mumbai = MasterContract(
+    provider_url=config.PROVIDER_MUMBAI_URL,
+    contract_address=config.MASTER_CONTRACT_MUMBAI_ADDRESS,
+)
+
+master_contract_sepolia = MasterContract(
+    provider_url=config.PROVIDER_SEPOLIA_URL,
+    contract_address=config.MASTER_CONTRACT_SEPOLIA_ADDRESS,
+)
 
 
 # -------------------------SERVICE COMMANDS-----------------------------------
@@ -37,7 +42,9 @@ async def help_message(message: types.Message):
         '/start - start\n'
         '/help - help\n'
         '/change_role - change role\n'
-        'тыры пыры'
+        '\n'
+        'Registration:\n'
+        '/set_address <business_address>\n'
     )
 
 
@@ -58,7 +65,7 @@ async def start(message: types.Message):
 
 
 @dp.message(Command('set_address'))
-async def start(message: types.Message):
+async def set_address(message: types.Message):
 
     current_user_telegram_id = message.chat.id
 
@@ -75,9 +82,62 @@ async def start(message: types.Message):
         "business_address": address,
     })
 
-    await message.answer(text='Address is successfully set!')
+    session.commit()
+
+    await message.answer(text='Address is successfully set, please register an instance contract!')
+    await register(message)
+
+
+async def register(message: types.Message):
+
+    current_user_telegram_id = message.chat.id
+    current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
+    address = current_user.business_address
+
+    register_keyboard = InlineKeyboardBuilder()
+
+    register_keyboard.row(InlineKeyboardButton(
+        text='Register',
+        url=f'{config.PAYMENT_SERVER}/register/{address}',
+    ))
+
+    register_keyboard.row(InlineKeyboardButton(
+        text='Check registration',
+        callback_data=f'checkregister_{current_user_telegram_id}'
+    ))
+
+    await message.answer(
+        text='1. Follow link\n'
+             '2. Wait for Metamask approval\n'
+             '3. Check your registration',
+        reply_markup=register_keyboard.as_markup(),
+    )
+
+
+@dp.callback_query(lambda c: c.data.startswith('checkregister_'))
+async def check_register(callback_query: types.CallbackQuery):
+    current_user_telegram_id = int(callback_query.data.split('_')[1])
+    await is_registered(current_user_telegram_id)
+    await bot.answer_callback_query(callback_query.id)
+
+
+async def is_registered(current_user_telegram_id):
+
+    current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
+    address = current_user.business_address
+
+    instance_contract = master_contract_mumbai.get_instance_contract(address)
+
+    session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+        "instance_contract": instance_contract,
+    })
 
     session.commit()
+
+    await bot.send_message(
+        text=f'Instance contract {instance_contract} successfully set!',
+        chat_id=current_user_telegram_id,
+    )
 
 
 # -------------------------ADMIN COMMANDS-----------------------------------
@@ -283,22 +343,88 @@ async def show_channels_page(chat_id, page=0):
 async def show_channel_info(chat_id, channel_id: int):
 
     keyboard = InlineKeyboardBuilder()
-    keyboard.row(InlineKeyboardButton(
-        text='Subscribe',
-        callback_data=f'subscribe_{channel_id}',
-    ))
-    keyboard.row(InlineKeyboardButton(
-        text='Back to list',
-        callback_data='back_to_channels_list'
-    ))
-
     channel = session.query(Channel).filter(Channel.id == channel_id).first()
+
+    keyboard.row(InlineKeyboardButton(text='Subscribe with ETH (Eth)', callback_data=f'subscribe_eth_{channel_id}'))
+    keyboard.row(InlineKeyboardButton(text='Subscribe with USDT (Eth)', callback_data=f'subscribe_wbtc_{channel_id}'))
+    keyboard.row(InlineKeyboardButton(text='Subscribe with MATIC (Polygon)', callback_data=f'subscribe_matic_{channel_id}'))
+    keyboard.row(InlineKeyboardButton(text='Subscribe with DERC (Polygon)', callback_data=f'subscribe_derc_{channel_id}'))
+
+    keyboard.row(InlineKeyboardButton(text='Back to list', callback_data='back_to_channels_list'))
 
     await bot.send_message(
         chat_id,
-        text=f'Info about channel {channel.url}',
+        text=f'Info about channel:\n'
+             f'URL: {channel.url}\n'
+             f'Author: {channel.author}\n'
+             f'Subscription cost: {channel.subscription_cost}',
         reply_markup=keyboard.as_markup(),
     )
+
+
+@dp.callback_query(lambda c: c.data.startswith('subscribe'))
+async def callback_subscribe(callback_query: types.CallbackQuery):
+
+    token = str(callback_query.data.split('_')[1])
+    channel_id = int(callback_query.data.split('_')[2])
+
+    amount = int(session.query(Channel).filter_by(id=channel_id).first().subscription_cost)
+
+    token_address = config.token_addresses[token]
+
+    author_id = session.query(Channel).filter_by(id=channel_id).first().author
+    author_instance_contract = (session.query(User).filter_by(telegram_id=author_id)
+                             .first()).instance_contract_mumbai
+
+    instance_contract = InstanceContract(
+        provider_url=config.PROVIDER_MUMBAI_URL,
+        contract_address=author_instance_contract,
+    )
+
+    escrow_contract_address = instance_contract.get_escrow_contract()
+
+    keyboard = InlineKeyboardBuilder()
+    keyboard.row(InlineKeyboardButton(
+        text=f'Subscribe {token.capitalize()}',
+        url=f'{config.PAYMENT_SERVER}/transfer/subscribe/{author_instance_contract}/{escrow_contract_address}/{token_address}/{amount}',
+    ))
+
+    keyboard.row(InlineKeyboardButton(
+        text=f'Check subscription',
+        callback_data=f'checksubs_{channel_id}_{callback_query.message.chat.id}',
+    ))
+
+    await bot.send_message(
+        chat_id=callback_query.message.chat.id,
+        text=f'instance_token: {author_instance_contract}\n'
+             f'token_address: {token_address}',
+        reply_markup=keyboard.as_markup(),
+    )
+
+    await bot.answer_callback_query(callback_query.id)
+
+
+@dp.callback_query(lambda c: c.data.startswith('checksubs'))
+async def callback_prev(callback_query: types.CallbackQuery):
+
+    channel_id = int(callback_query.data.split('_')[1])
+    user_id = int(callback_query.data.split('_')[2])
+
+    new_subscription = Subscription(
+        user_id=user_id,
+        channel_id=channel_id,
+        duration=30,
+    )
+
+    session.add(new_subscription)
+    session.commit()
+
+    await bot.send_message(
+        chat_id=callback_query.message.chat.id,
+        text=f'Successfully subscribed!',
+    )
+
+    await bot.answer_callback_query(callback_query.id)
 
 
 @dp.message(Command('list_channels'))
@@ -330,38 +456,6 @@ async def callback_next(callback_query: types.CallbackQuery):
 async def callback_info(callback_query: types.CallbackQuery):
     channel_id = int(callback_query.data.split('_')[1])
     await show_channel_info(callback_query.message.chat.id, channel_id=channel_id)
-    await bot.answer_callback_query(callback_query.id)
-
-
-@dp.callback_query(lambda c: c.data.startswith('subscribe'))
-async def callback_subscribe(callback_query: types.CallbackQuery):
-
-    channel_id = callback_query.data.split('_')[1]
-    telegram_user_id = callback_query.from_user.id
-
-    current_user = session.query(User).filter_by(telegram_id=telegram_user_id).first()
-    user_id = current_user.id
-
-    already_subscribed = session.query(Subscription).filter_by(
-        user_id=user_id,
-        channel_id=channel_id,
-    ).first()
-
-    if already_subscribed:
-        await bot.send_message(chat_id=callback_query.from_user.id, text='Already subscribed!')
-        await bot.answer_callback_query(callback_query.id)
-        return
-
-    new_subscription = Subscription(
-        user_id=user_id,
-        channel_id=channel_id,
-        duration=30,
-    )
-
-    session.add(new_subscription)
-    session.commit()
-
-    await bot.send_message(chat_id=callback_query.from_user.id, text='Successfully subscribed!')
     await bot.answer_callback_query(callback_query.id)
 
 

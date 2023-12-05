@@ -27,14 +27,14 @@ class MasterContract:
 
         return self.get_instance_contract(business_address=business_address)
 
-    def get_instance_contract(self, business_address: str) -> None:
+    def get_instance_contract(self, business_address: str) -> str:
         return self.contract.functions.instanceContracts(business_address).call()
 
 
-master_contract = MasterContract(
-    provider_url='https://rpc-mumbai.maticvigil.com/',
-    contract_address='0xb76616eb1d39688169eB029D21034dA885d04132',
-)
-
-
-print(master_contract.create_instance_contract('0x6C7e833e95134b498982433cec6c8E1bE8c96643'))
+# master_contract = MasterContract(
+#     provider_url='https://rpc-mumbai.maticvigil.com/',
+#     contract_address='0xb76616eb1d39688169eB029D21034dA885d04132',
+# )
+#
+#
+# print(master_contract.create_instance_contract('0x6C7e833e95134b498982433cec6c8E1bE8c96643'))

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Contract Interaction</title>
+</head>
+<body>
+<h1>Smart Contract Interaction</h1>
+
+    <div id="token" data-param="{{ data.token }}"></div>
+    <div id="amount" data-param="{{ data.amount }}"></div>
+    <div id="method" data-param="{{ data.method }}"></div>
+    <div id="instanceContract" data-param="{{ data.instance_contract }}"></div>
+    <div id="escrowContract" data-param="{{ data.escrow_contract }}"></div>
+
+<button id="approvalButton">Approve ERC20-tokens</button>
+<button id="paymentButton">Pay</button>
+<button id="releaseFundsButton">Release Funds</button>
+<button id="switchChainButton">Switch Chain</button>
+
+<script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+
+<script>
+
+    const chains = [
+        {
+            name: 'sepolia',
+            chainId: '0xaa36a7', // Chain ID for Sepolia in hexadecimal
+            rpcUrls: ['https://rpc.sepolia.org'], // Replace with your RPC URL for Sepolia
+        },
+        {
+            name:'mumbai',
+            chainId: '0x13881', // Chain ID for Mumbai in hexadecimal
+            rpcUrls: ['https://rpc-mumbai.maticvigil.com/'], // Replace with your RPC URL for Mumbai
+        }
+    ];
+    let selectedChainIndex = 0;
+
+    const erc20ABI = [
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "_spender",
+                    "type": "address"
+                },
+                {
+                    "name": "_value",
+                    "type": "uint256"
+                }
+            ],
+            "name": "approve",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "type": "function"
+        }
+    ];
+    const instanceContractABI = [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_businessOwner",
+                    "type": "address"
+                },
+                {
+                    "internalType": "address",
+                    "name": "_escrowContract",
+                    "type": "address"
+                },
+                {
+                    "internalType": "address",
+                    "name": "_feeManagementContract",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "_serviceFeePercent",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "subscriber",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "token",
+                    "type": "address"
+                }
+            ],
+            "name": "SubscriptionPaymentReceived",
+            "type": "event"
+        },
+        {
+            "inputs": [],
+            "name": "businessOwner",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "escrowContract",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "feeManagementContract",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "address",
+                    "name": "tokenAddress",
+                    "type": "address"
+                }
+            ],
+            "name": "paySubscription",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "serviceFeePercent",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ];
+    const escrowContractABI = [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_businessOwner",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "contractAddress",
+                    "type": "address"
+                },
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "businessOwner",
+                    "type": "address"
+                }
+            ],
+            "name": "EscrowContractCreated",
+            "type": "event"
+        },
+        {
+            "stateMutability": "payable",
+            "type": "fallback"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "token",
+                    "type": "address"
+                }
+            ],
+            "name": "getBalance",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "balance",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "owner",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "token",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "releaseFunds",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "stateMutability": "payable",
+            "type": "receive"
+        }
+    ];
+
+    const defaultAddress = '0x0000000000000000000000000000000000000000'
+    {#let tokenAddress = '0x0000000000000000000000000000000000000000';#}
+    {#const erc20TokenAddress = '0xfe4F5145f6e09952a5ba9e956ED0C25e3Fa4c7F1';//derc20#}
+    // tokenAddress = erc20TokenAddress;
+    const tokenAddress = document.getElementById('token')
+                .getAttribute('data-param');
+    const method = document.getElementById('method')
+                .getAttribute('data-param');
+    const instanceContractAddress = document.getElementById('instanceContract')
+                .getAttribute('data-param');
+    const amountFromPath = document.getElementById('amount')
+                .getAttribute('data-param');
+    const escrowContractAddress = document.getElementById('escrowContract')
+                .getAttribute('data-param');
+    const gasLimit = 2000000;
+
+
+    window.onload = async function () {
+        // Initialize a variable for the web3 instance
+        let web3Instance;
+
+        if (window.ethereum) {
+            web3Instance = new Web3(ethereum);
+            try {
+                await ethereum.enable(); // Request account access
+            } catch (error) {
+                console.error("User denied account access");
+            }
+        } else if (window.web3) {
+            web3Instance = new Web3(web3.currentProvider); // Legacy dApp browsers
+        } else {
+            console.error("Non-Ethereum browser detected. You should consider trying MetaMask!");
+            return; // Exit the function if web3 is not available
+        }
+
+        const erc20Contract = new web3Instance.eth.Contract(erc20ABI, tokenAddress);
+        const accounts = await web3Instance.eth.getAccounts();
+        const account = accounts[0];
+
+        document.getElementById('approvalButton').addEventListener('click', async function () {
+            try {
+                const receipt = await erc20Contract.methods.approve(instanceContractAddress, amountFromPath).send({from: account});
+                console.log('Transaction receipt: ', receipt);
+            } catch (error) {
+                console.error('Error interacting with smart erc20Contract:', error);
+            }
+        });
+
+        document.getElementById('paymentButton').addEventListener('click', async function () {
+            try {
+                const instanceContract = new web3Instance.eth.Contract(instanceContractABI, instanceContractAddress);
+
+                if (tokenAddress === defaultAddress) {
+                    await instanceContract.methods.paySubscription(amountFromPath, defaultAddress).send({
+                        from: account,
+                        // gas: gasLimit,
+                        // gasPrice: web3Instance.eth.gasPrice,
+                        value: amountFromPath
+                    });
+                } else {
+                    await instanceContract.methods.paySubscription(amountFromPath, tokenAddress).send({
+                        from: account,
+                        // gas: gasLimit,
+                        // gasPrice: web3Instance.eth.gasPrice,
+                    });
+                }
+                alert('Subscription payment successful');
+            } catch (error) {
+                console.error('An error occurred: ' + error.message);
+            }
+        });
+
+        document.getElementById('releaseFundsButton').addEventListener('click', async function () {
+            try {
+                const escrowContract = new web3Instance.eth.Contract(escrowContractABI, escrowContractAddress);
+                const receipt = await escrowContract.methods.releaseFunds(tokenAddress, amountFromPath).send({
+                    from: account,
+                });
+                console.log('Transaction receipt: ', receipt);
+            } catch (error) {
+                console.error('Error interacting while releasing funds:', error);
+            }
+        });
+
+        document.getElementById('switchChainButton').addEventListener('click', async function () {
+            selectedChainIndex = selectedChainIndex === 1 ? 0 : 1;
+
+             if (window.ethereum) {
+                window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: chains[selectedChainIndex].chainId }],
+                }).catch((error) => {
+                    // This error code indicates that the chain has not been added to MetaMask
+                    if (error.code === 4902) {
+                        window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [chains[selectedChainIndex]],
+                        }).catch((addError) => {
+                            console.error('Failed to add the network:', addError);
+                        });
+                    } else {
+                        console.error('Error switching networks:', error);
+                    }
+                });
+            } else {
+                alert('MetaMask is not installed!');
+            }
+        });
+    };
+</script>
+</body>
+</html>

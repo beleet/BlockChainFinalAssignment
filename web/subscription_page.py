@@ -1,20 +1,61 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
+
+import config
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 
 class EthereumAddress(BaseModel):
     address: str
 
 
-@app.post("/receive_address")
-async def receive_address(ethereum_address: EthereumAddress):
-    address = ethereum_address.address
+@app.get("/register/{business_address}")
+async def receive_address(
+        request: Request,
+        business_address: str,
+):
 
-    print(f"Received Ethereum address: {address}")
+    contract_data = {
+        'business_address': business_address,
+        'master_contract_address': config.MASTER_CONTRACT_MUMBAI_ADDRESS,
+    }
 
-    return {"message": "Address received successfully"}
+    return templates.TemplateResponse(
+        name='register_instance_contract.html',
+        context={
+            'request': request,
+            'data': contract_data,
+        },
+    )
+
+
+@app.get('/transfer/{method}/{instance_contract}/{escrow_contract}/{token}/{amount}')
+async def subscribe(
+        request: Request,
+        token: str,
+        instance_contract: str,
+        escrow_contract: str,
+        method: str,
+        amount: int,
+):
+    contract_data = {
+        'token': token,
+        'instance_contract': instance_contract,
+        'escrow_contract': escrow_contract,
+        'amount': amount,
+        'method': method,
+    }
+
+    return templates.TemplateResponse(
+        name='subscribe.html',
+        context={
+            'request': request,
+            'data': contract_data,
+        },
+    )
 
 
 if __name__ == "__main__":

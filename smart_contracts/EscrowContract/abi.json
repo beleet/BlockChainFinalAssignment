@@ -11,54 +11,42 @@
 		"type": "constructor"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			}
-		],
-		"name": "OwnableInvalidOwner",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "OwnableUnauthorizedAccount",
-		"type": "error"
-	},
-	{
 		"anonymous": false,
 		"inputs": [
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "previousOwner",
+				"name": "contractAddress",
 				"type": "address"
 			},
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "newOwner",
+				"name": "businessOwner",
 				"type": "address"
 			}
 		],
-		"name": "OwnershipTransferred",
+		"name": "EscrowContractCreated",
 		"type": "event"
 	},
 	{
-		"inputs": [],
-		"name": "businessOwner",
-		"outputs": [
+		"stateMutability": "payable",
+		"type": "fallback"
+	},
+	{
+		"inputs": [
 			{
 				"internalType": "address",
-				"name": "",
+				"name": "token",
 				"type": "address"
+			}
+		],
+		"name": "getBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -96,23 +84,7 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "renounceOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
+		"stateMutability": "payable",
+		"type": "receive"
 	}
 ]

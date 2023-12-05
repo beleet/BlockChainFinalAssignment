@@ -1,6 +1,8 @@
 from web3 import Web3, HTTPProvider
 import json
 
+import config
+
 
 class EscrowContract:
 
@@ -10,7 +12,6 @@ class EscrowContract:
             contract_address: str,
     ):
         self.web3 = Web3(HTTPProvider(provider_url))
-        self.web3.eth.default_account = self.web3.eth.accounts[0]
         self.contract = self.web3.eth.contract(
             address=self.web3.to_checksum_address(contract_address),
             abi=json.load(open('abi.json')),
@@ -19,13 +20,13 @@ class EscrowContract:
     def get_business_owner(self) -> str:
         return self.contract.functions.businessOwner().call()
 
-    def release_funds(self, token, amount) -> None:
-        pass
+    def get_events(self):
+        return self.contract.events
 
 
 # escrow_contract = EscrowContract(
-#     provider_url='http://127.0.0.1:7545',
-#     contract_address='0x1F6eC9c46201E5E8dC863bAaFeD6d021170544ac',
+#     provider_url=config.PROVIDER_MUMBAI_URL,
+#     contract_address='0x22DF0E966d3C1e063a0e7381De0b6c02A0573C0B',
 # )
 #
-# print(escrow_contract.get_business_owner())
+# print(escrow_contract.get_events())

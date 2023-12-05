@@ -4,36 +4,32 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Contract Interaction</title>
+    <title>Register</title>
 </head>
 <body>
-    <h1>Smart Contract Interaction</h1>
-    <button id="interactButton">Interact with Smart Contract</button>
+    <h1>Create a new instance contract</h1>
+    <div id="businessAddress" data-param="{{ data.business_address }}"></div>
+    <div id="masterContractAddress" data-param="{{ data.master_contract_address }}"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
     <script>
-        // Wait for the page to be fully loaded before executing the script
         window.onload = async function () {
-            // Check if MetaMask is installed
             if (window.ethereum) {
-                // Use MetaMask provider
                 window.web3 = new Web3(ethereum);
                 try {
-                    // Request account access
                     await ethereum.enable();
-                    // Accounts now exposed
                 } catch (error) {
                     console.error("User denied account access");
                 }
             } else if (window.web3) {
-                // Legacy dApp browsers
                 window.web3 = new Web3(web3.currentProvider);
             } else {
                 console.error("Non-Ethereum browser detected. You should consider trying MetaMask!");
             }
 
-            // Smart Contract Address
-            const contractAddress = '0xC77E1dE98FD297091e7FCbe21809454D94a8D9c6'; // Replace with your smart contract address
+            const contractAddress = document.getElementById('masterContractAddress')
+                .getAttribute('data-param');
+
             const contractABI = [
 	{
 		"inputs": [
@@ -215,27 +211,32 @@
 	}
 ];
 
+            const businessAddress = document.getElementById('businessAddress')
+                .getAttribute('data-param');
+
             const contract = new web3.eth.Contract(contractABI, contractAddress);
 
-            // Get the user's Ethereum address
             const accounts = await web3.eth.getAccounts();
             const userAddress = accounts[0];
 
-            // Button click event handler
-            document.getElementById('interactButton').addEventListener('click', async function () {
-                try {
-                    // Call your smart contract method
-                    const result = await contract.methods.createInstanceContract(userAddress).send({
-                        from: userAddress,
-                        gas: 200000,
-                        gasPrice: web3.eth.gasPrice
-                    });
+            if (userAddress !== businessAddress) {
+                console.log('Metamask address and address specified in tg bot are not the same!')
+            }
 
-                    console.log('Transaction Hash:', result.transactionHash);
-                } catch (error) {
-                    console.error('Error interacting with smart contract:', error);
-                }
-            });
+            try {
+                const result = await contract.methods.createInstanceContract(userAddress).send({
+                    from: userAddress,
+                    gas: 2000000,
+                    gasPrice: web3.eth.gasPrice
+                });
+
+                console.log('Successfully registered!');
+                console.log('Transaction Hash:', result.transactionHash);
+                console.log('Instance contract address:', result);
+
+            } catch (error) {
+                console.error('Error interacting with smart contract:', error);
+            }
         };
     </script>
 </body>
