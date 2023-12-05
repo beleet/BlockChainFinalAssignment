@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 import config
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class EthereumAddress(BaseModel):

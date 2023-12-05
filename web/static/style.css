@@ -1,0 +1,43 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4; /* Light gray background for the page */
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+    margin-top: 20px;
+}
+
+button {
+    margin: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50; /* Green background for buttons */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+.content {
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #e6e6fa; /* Light lavender background for the message */
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.content p {
+    color: #333; /* Dark text color */
+    font-size: 18px;
+}

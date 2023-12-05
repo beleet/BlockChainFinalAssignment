@@ -5,11 +5,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <link rel="stylesheet" type="text/css" href="../static/style.css">
 </head>
 <body>
     <h1>Create a new instance contract</h1>
     <div id="businessAddress" data-param="{{ data.business_address }}"></div>
     <div id="masterContractAddress" data-param="{{ data.master_contract_address }}"></div>
+
+    <div class="content">
+    <p>Please, take action in your web3 wallet, you can close the page after transaction approval/rejection</p>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
     <script>
