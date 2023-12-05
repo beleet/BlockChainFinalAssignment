@@ -8,9 +8,10 @@ class User(Base):
 
     id = db.Column(db.Integer, primary_key=True)
     telegram_id = db.Column(db.Integer)
-    business_address = db.Column(db.String)
-    instance_contract_sepolia = db.Column(db.String)
+    business_address_mumbai = db.Column(db.String)
+    business_address_sepolia = db.Column(db.String)
     instance_contract_mumbai = db.Column(db.String)
+    instance_contract_sepolia = db.Column(db.String)
 
     subscriptions = relationship('Subscription', back_populates='user')
 

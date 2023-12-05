@@ -36,11 +36,11 @@ class InstanceContract:
     def pay_subscription(self, amount, token) -> None:
         self.contract.functions.paySubscription(amount, token).call()
 
-
-instance_contract = InstanceContract(
-    provider_url='https://rpc-mumbai.maticvigil.com/',
-    contract_address='0x403391D6c95393B8c390caDf1e42d49A350c4a5D',
-)
+#
+# instance_contract = InstanceContract(
+#     provider_url='https://rpc-mumbai.maticvigil.com/',
+#     contract_address='0x403391D6c95393B8c390caDf1e42d49A350c4a5D',
+# )
 
 # print(instance_contract.get_business_owner())
 # print(instance_contract.get_escrow_contract())

@@ -1,3 +1,4 @@
+import enum
 import logging
 import asyncio
 
@@ -14,7 +15,6 @@ from models import User, Subscription, Channel
 
 from smart_contracts.MasterContract.base import MasterContract
 from smart_contracts.InstanceContract.base import InstanceContract
-# from smart_contracts.EscrowContract.base import EscrowContract
 
 
 Base.metadata.create_all(bind=engine)
@@ -33,6 +33,16 @@ master_contract_sepolia = MasterContract(
     provider_url=config.PROVIDER_SEPOLIA_URL,
     contract_address=config.MASTER_CONTRACT_SEPOLIA_ADDRESS,
 )
+
+
+class Network(enum.Enum):
+    MUMBAI = 1
+    SEPOLIA = 2
+
+
+current_network = Network.MUMBAI
+
+print(current_network)
 
 
 # -------------------------SERVICE COMMANDS-----------------------------------
@@ -64,6 +74,20 @@ async def start(message: types.Message):
     )
 
 
+@dp.message(Command('change_network'))
+async def change_network(message: types.Message):
+
+    global current_network
+
+    if current_network == Network.MUMBAI:
+        current_network = Network.SEPOLIA
+    else:
+        current_network = Network.MUMBAI
+
+    await message.answer(text=f'Network changed to {"MUMBAI" if current_network == Network.MUMBAI else "SEPOLIA"}')
+
+
+
 @dp.message(Command('set_address'))
 async def set_address(message: types.Message):
 
@@ -78,13 +102,23 @@ async def set_address(message: types.Message):
         )
         return
 
-    session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
-        "business_address": address,
-    })
+    if current_network == Network.MUMBAI:
 
-    session.commit()
+        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+            "business_address_mumbai": address,
+        })
 
-    await message.answer(text='Address is successfully set, please register an instance contract!')
+        session.commit()
+
+    else:
+
+        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+            "business_address_sepolia": address,
+        })
+
+        session.commit()
+
+    await message.answer(text='Addresses is successfully set, please register an instance contract!')
     await register(message)
 
 
@@ -92,7 +126,11 @@ async def register(message: types.Message):
 
     current_user_telegram_id = message.chat.id
     current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
-    address = current_user.business_address
+
+    if current_network == Network.MUMBAI:
+        address = current_user.business_address_mumbai
+    else:
+        address = current_user.business_address_sepolia
 
     register_keyboard = InlineKeyboardBuilder()
 
@@ -124,13 +162,22 @@ async def check_register(callback_query: types.CallbackQuery):
 async def is_registered(current_user_telegram_id):
 
     current_user = session.query(User).filter_by(telegram_id=current_user_telegram_id).first()
-    address = current_user.business_address
 
-    instance_contract = master_contract_mumbai.get_instance_contract(address)
+    if current_network == Network.MUMBAI:
+        address = current_user.business_address_mumbai
+        instance_contract = master_contract_mumbai.get_instance_contract(address)
 
-    session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
-        "instance_contract": instance_contract,
-    })
+        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+            "instance_contract_mumbai": instance_contract,
+        })
+
+    else:
+        address = current_user.business_address_sepolia
+        instance_contract = master_contract_sepolia.get_instance_contract(address)
+
+        session.query(User).filter_by(telegram_id=current_user_telegram_id).update({
+            "instance_contract_sepolia": instance_contract,
+        })
 
     session.commit()
 
@@ -270,7 +317,12 @@ async def add_channel(message: types.Message):
 
     current_user = session.query(User).filter_by(telegram_id=message.chat.id).first()
 
-    if current_user.business_address is None:
+    if current_network == Network.MUMBAI:
+        current_business_address = current_user.business_address_mumbai
+    else:
+        current_business_address = current_user.business_address_sepolia
+
+    if current_business_address is None:
         await bot.send_message(
             text='Please, set your business address, by /set_address command',
             chat_id=message.chat.id,
@@ -345,10 +397,12 @@ async def show_channel_info(chat_id, channel_id: int):
     keyboard = InlineKeyboardBuilder()
     channel = session.query(Channel).filter(Channel.id == channel_id).first()
 
-    keyboard.row(InlineKeyboardButton(text='Subscribe with ETH (Eth)', callback_data=f'subscribe_eth_{channel_id}'))
-    keyboard.row(InlineKeyboardButton(text='Subscribe with USDT (Eth)', callback_data=f'subscribe_wbtc_{channel_id}'))
-    keyboard.row(InlineKeyboardButton(text='Subscribe with MATIC (Polygon)', callback_data=f'subscribe_matic_{channel_id}'))
-    keyboard.row(InlineKeyboardButton(text='Subscribe with DERC (Polygon)', callback_data=f'subscribe_derc_{channel_id}'))
+    if current_network == Network.SEPOLIA:
+        keyboard.row(InlineKeyboardButton(text='Subscribe with ETH (Eth)', callback_data=f'subscribe_eth_{channel_id}'))
+        keyboard.row(InlineKeyboardButton(text='Subscribe with USDT (Eth)', callback_data=f'subscribe_wbtc_{channel_id}'))
+    else:
+        keyboard.row(InlineKeyboardButton(text='Subscribe with MATIC (Polygon)', callback_data=f'subscribe_matic_{channel_id}'))
+        keyboard.row(InlineKeyboardButton(text='Subscribe with DERC (Polygon)', callback_data=f'subscribe_derc_{channel_id}'))
 
     keyboard.row(InlineKeyboardButton(text='Back to list', callback_data='back_to_channels_list'))
 
@@ -373,13 +427,26 @@ async def callback_subscribe(callback_query: types.CallbackQuery):
     token_address = config.token_addresses[token]
 
     author_id = session.query(Channel).filter_by(id=channel_id).first().author
-    author_instance_contract = (session.query(User).filter_by(telegram_id=author_id)
+
+    if current_network == Network.MUMBAI:
+
+        author_instance_contract = (session.query(User).filter_by(telegram_id=author_id)
                              .first()).instance_contract_mumbai
 
-    instance_contract = InstanceContract(
-        provider_url=config.PROVIDER_MUMBAI_URL,
-        contract_address=author_instance_contract,
-    )
+        instance_contract = InstanceContract(
+            provider_url=config.PROVIDER_MUMBAI_URL,
+            contract_address=author_instance_contract,
+        )
+
+    else:
+
+        author_instance_contract = (session.query(User).filter_by(telegram_id=author_id)
+                             .first()).instance_contract_sepolia
+
+        instance_contract = InstanceContract(
+            provider_url=config.PROVIDER_SEPOLIA_URL,
+            contract_address=author_instance_contract,
+        )
 
     escrow_contract_address = instance_contract.get_escrow_contract()
 
